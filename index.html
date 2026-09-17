@@ -3,57 +3,133 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#07090a">
+<meta name="theme-color" content="#050708">
 <title>Твой ход</title>
 <style>
-:root{--bg:#07090a;--text:#f7f5ef;--muted:#b9bab7;--lime:#dfff28;--line:#323638}
-*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
-main{max-width:980px;margin:auto;padding:28px 22px 70px;overflow:hidden}
-.brand{font:34px Georgia,serif;letter-spacing:.02em}.tag{font-size:12px;letter-spacing:.28em;margin-top:9px}
-.hero{position:relative;padding-top:52px;min-height:620px}.hero h1{font:700 clamp(58px,10vw,110px)/.88 Georgia,serif;margin:0;max-width:600px;letter-spacing:-.045em}
-.lead{font-size:21px;line-height:1.45;max-width:520px;margin:26px 0}
-.photo{position:absolute;right:-2%;top:8px;width:43%;height:330px;border:1px solid #777;border-radius:10px;overflow:hidden;transform:rotate(-5deg);background:#16191a}
-.photo img{width:100%;height:100%;object-fit:cover;filter:saturate(.8) contrast(1.05)}
-.scribble{position:absolute;right:2%;top:315px;color:var(--lime);font-size:58px;font-family:cursive;transform:rotate(-12deg)}
-form{position:relative;z-index:3;max-width:650px}
-input{width:100%;height:66px;border-radius:34px;border:1.5px solid #fff;background:#0b0f10;color:#fff;padding:0 25px;font-size:17px;outline:none}
+:root{--bg:#050708;--text:#f7f5ef;--muted:#b9bab7;--lime:#dcff28;--line:#303536}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#000;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+main{max-width:900px;min-height:100vh;margin:auto;padding:28px 30px 72px;background:radial-gradient(circle at 70% 14%,#10191b 0,#070a0b 34%,#050708 67%);overflow:hidden}
+header{position:relative;z-index:10}
+.brand{font:35px Georgia,serif;letter-spacing:.01em}
+.tag{font-size:12px;letter-spacing:.30em;margin-top:8px}
+
+.hero{position:relative;min-height:690px;padding-top:78px}
+.hero-copy{position:relative;z-index:4;width:58%}
+.hero h1{font:700 clamp(62px,8.4vw,94px)/.84 Georgia,serif;letter-spacing:-.055em;margin:0}
+.lead{font-size:20px;line-height:1.42;max-width:490px;margin:27px 0 18px}
+
+.collage{position:absolute;z-index:2;right:-5px;top:-15px;width:49%;height:540px;pointer-events:none}
+.photo{position:absolute;overflow:hidden;border:1px solid rgba(255,255,255,.65);border-radius:8px;background:#111;box-shadow:0 22px 55px rgba(0,0,0,.35)}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-city{width:91%;height:310px;right:0;top:0;transform:rotate(-5deg)}
+.photo-date{width:72%;height:285px;right:-2%;top:285px;transform:rotate(8deg)}
+.photo-city img{object-position:center 58%}
+.photo-date img{object-position:center center}
+.scribble{position:absolute;z-index:4;right:2%;top:268px;width:88px;height:60px;transform:rotate(-13deg)}
+.scribble path{fill:none;stroke:var(--lime);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+
+.controls{position:relative;z-index:7;max-width:560px;margin-top:6px}
+.city-row{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.city-label{font-size:12px;color:var(--muted);letter-spacing:.11em;text-transform:uppercase}
+.city-select{appearance:none;-webkit-appearance:none;border:1px solid #555;background:#0b0f10;color:#fff;border-radius:999px;padding:9px 34px 9px 15px;font-size:14px;background-image:linear-gradient(45deg,transparent 50%,#dfff28 50%),linear-gradient(135deg,#dfff28 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+form{position:relative}
+input{width:100%;height:64px;border-radius:34px;border:1.4px solid #fff;background:rgba(7,11,12,.92);color:#fff;padding:0 24px;font-size:16px;outline:none}
 input:focus{border-color:var(--lime)}
-.primary{width:100%;height:70px;margin-top:14px;border:0;border-radius:36px;background:var(--lime);font-size:21px;font-weight:800;color:#080a08;cursor:pointer}
-.eyebrow{margin:42px 0 26px;font-size:13px;letter-spacing:.3em}
-.steps{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:start;gap:12px}
-.step{text-align:center;font-size:15px}.icon{width:86px;height:86px;border:2px solid var(--lime);border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;font-size:38px;font-weight:300}.arrow{font-size:32px;margin-top:25px;color:#ddd}
-.plane{font-size:34px;transform:rotate(-8deg)} .icon svg{display:block;width:48%;height:48%;color:#fff}
-.closing{margin-top:60px}.closing h2{font:clamp(42px,7vw,76px)/1 Georgia,serif;margin:0}.closing p{color:var(--lime);font:italic clamp(24px,4vw,42px)/1.2 Georgia,serif;margin:18px 0}
-.results{display:none;margin-top:44px}.results.show{display:block}.results h2{font:42px Georgia,serif;margin-bottom:18px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{border:1px solid var(--line);border-radius:20px;padding:20px;background:#0d1011}.card small{color:var(--lime);letter-spacing:.12em}.card h3{font:28px Georgia,serif;margin:10px 0}.card p{color:var(--muted);line-height:1.5}.share{width:100%;border:1px solid var(--lime);background:transparent;color:var(--lime);padding:13px;border-radius:24px;font-weight:700}
-.invite{display:none;border:1px solid var(--lime);border-radius:22px;padding:24px;margin-top:30px}.invite.show{display:block}.invite strong{font:32px Georgia,serif}
-@media(max-width:700px){
-main{padding:24px 18px 55px}.brand{font-size:29px}.hero{padding-top:300px;min-height:auto}.photo{width:72%;height:280px;top:20px;right:-8%}.hero h1{font-size:62px}.lead{font-size:18px}.scribble{top:260px}.steps{gap:4px}.icon{width:62px;height:62px;font-size:28px}.arrow{font-size:20px;margin-top:20px}.step{font-size:12px}.cards{grid-template-columns:1fr}.closing{margin-top:48px}
+.primary{width:100%;height:68px;margin-top:13px;border:0;border-radius:35px;background:var(--lime);font-size:20px;font-weight:800;color:#070907;cursor:pointer;box-shadow:0 0 24px rgba(220,255,40,.18)}
+
+.eyebrow{margin:18px 0 25px;font-size:12px;letter-spacing:.32em}
+.steps{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:start;gap:10px}
+.step{text-align:center;font-size:14px;line-height:1.25}
+.icon{width:74px;height:74px;border:2px solid var(--lime);border-radius:50%;display:grid;place-items:center;margin:0 auto 12px}
+.icon svg{width:43px;height:43px;fill:none;stroke:#fff;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.arrow{font-size:27px;margin-top:23px;color:#ddd;font-weight:200}
+
+.results{display:none;margin-top:50px}.results.show{display:block}
+.results h2{font:42px Georgia,serif;margin:0 0 18px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.card{border:1px solid var(--line);border-radius:18px;padding:19px;background:#0c0f10}
+.card small{color:var(--lime);letter-spacing:.12em}.card h3{font:26px Georgia,serif;margin:9px 0}
+.card p{color:var(--muted);line-height:1.45;font-size:14px}
+.share{width:100%;border:1px solid var(--lime);background:transparent;color:var(--lime);padding:12px;border-radius:24px;font-weight:700}
+
+.invite{display:none;border:1px solid var(--lime);border-radius:20px;padding:23px;margin-top:30px}
+.invite.show{display:block}.invite strong{font:31px Georgia,serif}
+.closing{margin-top:58px}.closing h2{font:clamp(40px,6vw,65px)/1 Georgia,serif;margin:0}
+.closing p{color:var(--lime);font:italic clamp(22px,3.5vw,36px)/1.2 Georgia,serif;margin:17px 0}
+
+@media(max-width:720px){
+ main{padding:23px 18px 54px}
+ .brand{font-size:29px}.tag{font-size:10px;letter-spacing:.25em}
+ .hero{padding-top:340px;min-height:auto}
+ .hero-copy{width:100%}
+ .collage{width:76%;height:350px;top:18px;right:-7%}
+ .photo-city{width:92%;height:230px}
+ .photo-date{width:65%;height:205px;top:190px;right:0}
+ .scribble{top:186px;right:2%;width:67px}
+ .hero h1{font-size:60px;line-height:.87}
+ .lead{font-size:18px;margin-top:22px}
+ .controls{max-width:none}
+ .eyebrow{margin-top:42px}
+ .icon{width:61px;height:61px}.icon svg{width:35px;height:35px}
+ .arrow{font-size:20px;margin-top:19px}.step{font-size:11px}
+ .cards{grid-template-columns:1fr}
 }
-@media(max-width:390px){.hero h1{font-size:54px}.steps{grid-template-columns:1fr 1fr;gap:20px}.arrow{display:none}.icon{width:70px;height:70px}.step{font-size:13px}}
+@media(max-width:410px){
+ .hero{padding-top:320px}
+ .collage{width:82%}
+ .hero h1{font-size:54px}
+ .steps{grid-template-columns:1fr 1fr;gap:22px 12px}
+ .arrow{display:none}.step{font-size:12px}.icon{width:67px;height:67px}
+}
 </style>
 </head>
 <body>
 <main>
-<header><div class="brand">ТВОЙ ХОД</div><div class="tag">СОЗДАЁМ МОМЕНТЫ ВМЕСТЕ</div></header>
+<header>
+  <div class="brand">ТВОЙ ХОД</div>
+  <div class="tag">СОЗДАЁМ МОМЕНТЫ ВМЕСТЕ</div>
+</header>
 
 <section class="hero">
-  <div class="photo"><img src="images/hero.jpg" alt="Атмосфера Твой ход"></div>
-  <div class="scribble">⌁</div>
-  <h1>Как<br>проведём<br>время?</h1>
-  <p class="lead">Опиши настроение, бюджет, чего хочется и сколько у тебя времени.</p>
-  <form id="ideaForm">
-    <input id="idea" required placeholder="Например: необычно, вдвоём, до 6000 ₽, 4 часа">
-    <button class="primary" type="submit">Подкинуть варианты ✦</button>
-  </form>
+  <div class="collage" aria-hidden="true">
+    <div class="photo photo-city"><img src="photo-city.jpg" alt=""></div>
+    <div class="photo photo-date"><img src="photo-date.jpg" alt=""></div>
+    <svg class="scribble" viewBox="0 0 100 65"><path d="M5 51C24 30 39 17 65 5L38 37 90 16 55 57 93 38"/></svg>
+  </div>
+
+  <div class="hero-copy">
+    <h1>Как<br>проведём<br>время?</h1>
+    <p class="lead">Опиши настроение, бюджет, чего хочется и сколько у тебя времени.</p>
+  </div>
+
+  <div class="controls">
+    <div class="city-row">
+      <span class="city-label">Где ищем</span>
+      <select class="city-select" id="city" aria-label="Город">
+        <option>Москва</option>
+        <option>Санкт-Петербург</option>
+        <option>Другой город</option>
+      </select>
+    </div>
+    <form id="ideaForm">
+      <input id="idea" required placeholder="Например: необычно, вдвоём, до 6000 ₽, 4 часа">
+      <button class="primary" type="submit">Подкинуть варианты ✦</button>
+    </form>
+  </div>
 </section>
 
 <section>
 <div class="eyebrow">КАК ЭТО РАБОТАЕТ</div>
 <div class="steps">
- <div class="step"><div class="icon" aria-hidden="true"><svg viewBox="0 0 48 48" width="42" height="42" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="24" cy="24" r="15"/><circle cx="19" cy="21" r="1"/><circle cx="29" cy="21" r="1"/><path d="M17.5 28c2 3 4.2 4.5 6.5 4.5s4.5-1.5 6.5-4.5"/></svg></div>Поделись<br>настроением</div><div class="arrow">→</div>
- <div class="step"><div class="icon" aria-hidden="true"><svg viewBox="0 0 48 48" width="42" height="42" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6c1.4 8.8 5.2 12.6 14 14-8.8 1.4-12.6 5.2-14 14-1.4-8.8-5.2-12.6-14-14 8.8-1.4 12.6-5.2 14-14z"/><path d="M37 7v6M34 10h6M10 31v5M7.5 33.5h5"/></svg></div>Получи<br>несколько ходов</div><div class="arrow">→</div>
- <div class="step"><div class="icon" aria-hidden="true"><svg viewBox="0 0 48 48" width="42" height="42" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M24 38S9 29 9 18.5C9 13.8 12.6 10 17 10c3 0 5.6 1.7 7 4.1C25.4 11.7 28 10 31 10c4.4 0 8 3.8 8 8.5C39 29 24 38 24 38z"/></svg></div>Выбери<br>свой</div><div class="arrow">→</div>
- <div class="step"><div class="icon" aria-hidden="true"><svg viewBox="0 0 48 48" width="42" height="42" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22L41 7 29 41l-7-13-16-6z"/><path d="M22 28L41 7"/></svg></div>Передай<br>ход</div>
+ <div class="step"><div class="icon"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="15"/><circle cx="19" cy="21" r="1"/><circle cx="29" cy="21" r="1"/><path d="M17.5 28c2 3 4.2 4.5 6.5 4.5s4.5-1.5 6.5-4.5"/></svg></div>Поделись<br>настроением</div>
+ <div class="arrow">→</div>
+ <div class="step"><div class="icon"><svg viewBox="0 0 48 48"><path d="M24 6c1.4 8.8 5.2 12.6 14 14-8.8 1.4-12.6 5.2-14 14-1.4-8.8-5.2-12.6-14-14 8.8-1.4 12.6-5.2 14-14z"/><path d="M37 7v6M34 10h6M10 31v5M7.5 33.5h5"/></svg></div>Получи<br>несколько ходов</div>
+ <div class="arrow">→</div>
+ <div class="step"><div class="icon"><svg viewBox="0 0 48 48"><path d="M24 38S9 29 9 18.5C9 13.8 12.6 10 17 10c3 0 5.6 1.7 7 4.1C25.4 11.7 28 10 31 10c4.4 0 8 3.8 8 8.5C39 29 24 38 24 38z"/></svg></div>Выбери<br>свой</div>
+ <div class="arrow">→</div>
+ <div class="step"><div class="icon"><svg viewBox="0 0 48 48"><path d="M6 22L41 7 29 41l-7-13-16-6z"/><path d="M22 28L41 7"/></svg></div>Передай<br>ход</div>
 </div>
 </section>
 
@@ -74,7 +150,13 @@ main{padding:24px 18px 55px}.brand{font-size:29px}.hero{padding-top:300px;min-he
 <p>Ходи. Встречайся. Пробуй. Создавай.</p>
 </section>
 </main>
+
 <script>
+const city=document.getElementById("city");
+const savedCity=localStorage.getItem("tvoyHodCity");
+if(savedCity && [...city.options].some(o=>o.value===savedCity)) city.value=savedCity;
+city.addEventListener("change",()=>localStorage.setItem("tvoyHodCity",city.value));
+
 const moves=[
  {t:"Город после заката",m:"Активность → ужин → красивый финал",d:"Около 4 часов · подходит для двоих или друзей"},
  {t:"Попробовать новое",m:"Новый опыт → кофе или десерт → прогулка",d:"Около 3 часов · лёгкий спонтанный ход"},
@@ -84,28 +166,27 @@ const form=document.getElementById("ideaForm"),results=document.getElementById("
 function render(){
  cards.innerHTML="";
  moves.forEach((x,i)=>{
-  const c=document.createElement("article"); c.className="card";
+  const c=document.createElement("article");c.className="card";
   c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${x.t}</h3><p>${x.m}</p><p>${x.d}</p><button class="share" type="button">Передать ход →</button>`;
-  c.querySelector(".share").addEventListener("click",()=>shareMove(i)); cards.appendChild(c);
+  c.querySelector(".share").addEventListener("click",()=>shareMove(i));cards.appendChild(c);
  });
- results.classList.add("show"); results.scrollIntoView({behavior:"smooth"});
+ results.classList.add("show");results.scrollIntoView({behavior:"smooth"});
 }
 form.addEventListener("submit",e=>{e.preventDefault();render()});
 async function shareMove(i){
- const payload=btoa(unescape(encodeURIComponent(JSON.stringify({i,q:document.getElementById("idea").value}))));
+ const payload=btoa(unescape(encodeURIComponent(JSON.stringify({i,q:document.getElementById("idea").value,city:city.value}))));
  const url=location.href.split("#")[0]+"#invite="+encodeURIComponent(payload);
  const data={title:"Твой ход ✦",text:"Тебе передали ход ✦",url};
  if(navigator.share){try{await navigator.share(data);return}catch(e){}}
  prompt("Скопируй ссылку и отправь её:",url);
 }
 function readInvite(){
- const h=location.hash;
- if(!h.startsWith("#invite="))return;
+ const h=location.hash;if(!h.startsWith("#invite="))return;
  try{
   const p=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(h.slice(8))))));
   const x=moves[p.i]||moves[0];
   document.getElementById("inviteTitle").textContent=x.t;
-  document.getElementById("inviteText").textContent=x.m+" · "+x.d;
+  document.getElementById("inviteText").textContent=x.m+" · "+x.d+(p.city?" · "+p.city:"");
   document.getElementById("invite").classList.add("show");
   document.getElementById("invite").scrollIntoView();
  }catch(e){}
@@ -113,4 +194,5 @@ function readInvite(){
 document.getElementById("accept").addEventListener("click",e=>{e.currentTarget.textContent="Договорились ✓";e.currentTarget.disabled=true});
 readInvite();
 </script>
-</body></html>
+</body>
+</html>
