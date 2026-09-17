@@ -48,8 +48,19 @@ input:focus{border-color:var(--lime)}
 
 .results{display:none;margin-top:50px}.results.show{display:block}
 .results h2{font:42px Georgia,serif;margin:0 0 18px}
+.result-head{display:flex;justify-content:space-between;gap:18px;align-items:end;margin-bottom:18px}
+.parsed{max-width:420px;color:var(--muted);font-size:13px;text-align:right;line-height:1.5}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
-.card{border:1px solid var(--line);border-radius:18px;padding:19px;background:#0c0f10}
+.card{border:1px solid var(--line);border-radius:18px;padding:19px;background:#0c0f10;position:relative;overflow:hidden}
+.card.secret{border-color:rgba(220,255,40,.55);background:linear-gradient(145deg,#101410,#080b0c)}
+.card.secret:before{content:"◐";position:absolute;right:16px;top:10px;font:52px Georgia,serif;color:rgba(220,255,40,.11)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin:13px 0}
+.pill{font-size:11px;border:1px solid #3a4040;border-radius:999px;padding:6px 9px;color:#d6d7d3}
+.route{font-size:13px!important;color:#f3f1ea!important;min-height:58px}
+.secret-note{color:var(--lime)!important;font-size:12px!important}
+.reveal{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #2d3333}
+.reveal.show{display:block}
+.accept-secret{width:100%;border:0;background:var(--lime);color:#070907;padding:13px;border-radius:24px;font-weight:800;margin-top:8px}
 .card small{color:var(--lime);letter-spacing:.12em}.card h3{font:26px Georgia,serif;margin:9px 0}
 .card p{color:var(--muted);line-height:1.45;font-size:14px}
 .share{width:100%;border:1px solid var(--lime);background:transparent;color:var(--lime);padding:12px;border-radius:24px;font-weight:700}
@@ -74,7 +85,7 @@ input:focus{border-color:var(--lime)}
  .eyebrow{margin-top:42px}
  .icon{width:61px;height:61px}.icon svg{width:35px;height:35px}
  .arrow{font-size:20px;margin-top:19px}.step{font-size:11px}
- .cards{grid-template-columns:1fr}
+ .cards{grid-template-columns:1fr}.result-head{display:block}.parsed{text-align:left;margin-top:8px}
 }
 @media(max-width:410px){
  .hero{padding-top:320px}
@@ -134,7 +145,13 @@ input:focus{border-color:var(--lime)}
 </section>
 
 <section id="results" class="results">
-<h2>Вот твои ходы ✦</h2>
+<div class="result-head">
+  <div>
+    <div class="eyebrow" style="margin:0 0 8px">ПОД ТВОЙ ЗАПРОС</div>
+    <h2>Вот твои ходы ✦</h2>
+  </div>
+  <div id="parsed" class="parsed"></div>
+</div>
 <div class="cards" id="cards"></div>
 </section>
 
@@ -157,24 +174,66 @@ const savedCity=localStorage.getItem("tvoyHodCity");
 if(savedCity && [...city.options].some(o=>o.value===savedCity)) city.value=savedCity;
 city.addEventListener("change",()=>localStorage.setItem("tvoyHodCity",city.value));
 
-const moves=[
- {t:"Город после заката",m:"Активность → ужин → красивый финал",d:"Около 4 часов · подходит для двоих или друзей"},
- {t:"Попробовать новое",m:"Новый опыт → кофе или десерт → прогулка",d:"Около 3 часов · лёгкий спонтанный ход"},
- {t:"Вечер без плана",m:"Ужин → необычное продолжение → финальная точка",d:"Около 4–5 часов · соберём вокруг твоего настроения"}
-];
-const form=document.getElementById("ideaForm"),results=document.getElementById("results"),cards=document.getElementById("cards");
+function parseIntent(q){
+ const s=q.toLowerCase();
+ const money=(s.match(/(?:до\s*)?(\d[\d\s]{2,5})\s*(?:₽|руб|р\b)?/)||[])[1];
+ const hours=(s.match(/(\d+(?:[.,]\d+)?)\s*(?:час|ч\b)/)||[])[1];
+ let people="для компании";
+ if(/вдво[её]м|на двоих|2\s*(?:чел|человек)/.test(s)) people="вдвоём";
+ else if(/одн[аио]|соло|сам[аи]?/.test(s)) people="одному";
+ else if(/друз|компан/.test(s)) people="с друзьями";
+ let mood="что-то интересное";
+ if(/релакс|спокой|отдох|уют/.test(s)) mood="спокойно";
+ else if(/роман|свидан/.test(s)) mood="романтично";
+ else if(/актив|движ|спорт/.test(s)) mood="активно";
+ else if(/необыч|новое|удив/.test(s)) mood="необычно";
+ return {budget:money?Number(money.replace(/\s/g,"")):null,hours:hours?Number(hours.replace(",",".")):null,people,mood,city:city.value};
+}
+function moneyText(n){return n?`до ${n.toLocaleString("ru-RU")} ₽`:"бюджет уточним"}
+function hourText(n){return n?`≈ ${String(n).replace(".",",")} ч`:"по времени гибко"}
+function buildMoves(p){
+ const short=p.hours && p.hours<=2.5;
+ const calm=p.mood==="спокойно"||p.mood==="романтично";
+ const first=calm
+  ? {t:"Тихий вечер",route:short?"Камерное место → десерт или чай":"Спокойное впечатление → ужин → короткий финал",desc:"Без гонки по городу: минимум перемещений и достаточно времени побыть вместе."}
+  : {t:"Смена ритма",route:short?"Один яркий опыт → кофе":"Новый опыт → пауза → красивый финал",desc:"Сценарий с одной главной эмоцией и логичным продолжением рядом."};
+ const second=calm
+  ? {t:"Красивый маршрут",route:short?"Атмосферная точка → небольшая прогулка":"Видовая точка → ужин → вечерняя прогулка",desc:"Более визуальный ход, но всё ещё в комфортном темпе."}
+  : {t:"Попробовать новое",route:short?"Необычная активность → десерт":"Необычная активность → еда → финальная точка",desc:"Чуть больше новизны, сохраняя твои ограничения по времени и бюджету."};
+ return [first,second];
+}
+function metaHTML(p){
+ return `<div class="meta"><span class="pill">${p.city}</span><span class="pill">${hourText(p.hours)}</span><span class="pill">${moneyText(p.budget)}</span><span class="pill">${p.people}</span></div>`;
+}
 function render(){
+ const p=parseIntent(document.getElementById("idea").value);
+ const regular=buildMoves(p);
+ document.getElementById("parsed").textContent=`Поняла: ${p.mood} · ${p.people} · ${hourText(p.hours)} · ${moneyText(p.budget)} · ${p.city}`;
  cards.innerHTML="";
- moves.forEach((x,i)=>{
-  const c=document.createElement("article");c.className="card";
-  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${x.t}</h3><p>${x.m}</p><p>${x.d}</p><button class="share" type="button">Передать ход →</button>`;
-  c.querySelector(".share").addEventListener("click",()=>shareMove(i));cards.appendChild(c);
+ regular.forEach((x,i)=>{
+  const c=document.createElement("article"); c.className="card";
+  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${x.t}</h3>${metaHTML(p)}<p class="route">${x.route}</p><p>${x.desc}</p><p style="font-size:11px;color:#777">На следующем этапе сюда подключим проверенные реальные места.</p><button class="share" type="button">Передать ход →</button>`;
+  c.querySelector(".share").addEventListener("click",()=>shareCustom(x.t,x.route,p));
+  cards.appendChild(c);
  });
- results.classList.add("show");results.scrollIntoView({behavior:"smooth"});
+ const s=document.createElement("article"); s.className="card secret";
+ s.innerHTML=`<small>◐ СЕКРЕТНЫЙ ХОД</small><h3>Не подсматривай</h3>${metaHTML(p)}
+ <p class="route">Сценарий скрыт. Условия комфорта — нет.</p>
+ <p class="secret-note">✓ маршрут собран в одном районе<br>✓ без лишних переездов<br>✓ учитывает твой запрос</p>
+ <button class="accept-secret" type="button">Принять секретный ход ◐</button>
+ <div class="reveal"><small>ШАГ 1</small><p>Первая точка откроется здесь после подключения базы реальных мест Москвы.</p><button class="share" type="button">Передать секретный ход →</button></div>`;
+ s.querySelector(".accept-secret").addEventListener("click",e=>{
+   e.currentTarget.textContent="Секретный ход принят ✓";
+   s.querySelector(".reveal").classList.add("show");
+ });
+ s.querySelector(".share").addEventListener("click",()=>shareCustom("Секретный ход ◐","Сценарий скрыт — условия известны.",p));
+ cards.appendChild(s);
+ results.classList.add("show"); results.scrollIntoView({behavior:"smooth"});
 }
 form.addEventListener("submit",e=>{e.preventDefault();render()});
-async function shareMove(i){
- const payload=btoa(unescape(encodeURIComponent(JSON.stringify({i,q:document.getElementById("idea").value,city:city.value}))));
+async function shareCustom(title,route,p){
+ const obj={custom:true,title,route,p};
+ const payload=btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
  const url=location.href.split("#")[0]+"#invite="+encodeURIComponent(payload);
  const data={title:"Твой ход ✦",text:"Тебе передали ход ✦",url};
  if(navigator.share){try{await navigator.share(data);return}catch(e){}}
@@ -184,9 +243,8 @@ function readInvite(){
  const h=location.hash;if(!h.startsWith("#invite="))return;
  try{
   const p=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(h.slice(8))))));
-  const x=moves[p.i]||moves[0];
-  document.getElementById("inviteTitle").textContent=x.t;
-  document.getElementById("inviteText").textContent=x.m+" · "+x.d+(p.city?" · "+p.city:"");
+  document.getElementById("inviteTitle").textContent=p.custom?p.title:"Твой ход";
+  document.getElementById("inviteText").textContent=p.custom?(p.route+" · "+(p.p?.city||"")):"Тебе передали ход";
   document.getElementById("invite").classList.add("show");
   document.getElementById("invite").scrollIntoView();
  }catch(e){}
