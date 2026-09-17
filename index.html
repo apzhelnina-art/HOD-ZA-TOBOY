@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#050708">
-<title>Твой ход</title>
+<title>Ход за тобой</title>
 <style>
 :root{--bg:#050708;--text:#f7f5ef;--muted:#b9bab7;--lime:#dcff28;--line:#303536}
 *{box-sizing:border-box}
@@ -99,7 +99,7 @@ input:focus{border-color:var(--lime)}
 <body>
 <main>
 <header>
-  <div class="brand">ТВОЙ ХОД</div>
+  <div class="brand">ХОД ЗА ТОБОЙ</div>
   <div class="tag">СОЗДАЁМ МОМЕНТЫ ВМЕСТЕ</div>
 </header>
 
@@ -168,7 +168,7 @@ input:focus{border-color:var(--lime)}
 </section>
 
 <footer style="text-align:center;padding:24px 16px 40px;color:var(--muted, #777);font-size:12px">
-© 2026 «Твой ход». Все права защищены. Копирование дизайна, текстов и логики без разрешения автора запрещено.
+© 2026 «Ход за тобой». Все права защищены. Копирование дизайна, текстов и логики без разрешения автора запрещено.
 </footer>
 </main>
 
@@ -272,7 +272,7 @@ async function renderFromBackend(p){
    route:(h.steps||[]).map(s=>s.place_name).join(" → ")||h.route_summary,
    desc:h.route_summary+(h.notes?` ${h.notes}`:"")
  }));
- renderRegularCards(regular,p,"Места реальные — проверены через 2ГИС.");
+ renderRegularCards(regular,p,"Места реальные — проверены через OpenStreetMap.");
  appendSecretCard(p);
 }
 
@@ -299,7 +299,7 @@ async function shareCustom(title,route,p){
  const obj={custom:true,title,route,p};
  const payload=btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
  const url=location.href.split("#")[0]+"#invite="+encodeURIComponent(payload);
- const data={title:"Твой ход ✦",text:"Тебе передали ход ✦",url};
+ const data={title:"Ход за тобой ✦",text:"Тебе передали ход ✦",url};
  if(navigator.share){try{await navigator.share(data);return}catch(e){}}
  prompt("Скопируй ссылку и отправь её:",url);
 }
@@ -307,7 +307,7 @@ function readInvite(){
  const h=location.hash;if(!h.startsWith("#invite="))return;
  try{
   const p=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(h.slice(8))))));
-  document.getElementById("inviteTitle").textContent=p.custom?p.title:"Твой ход";
+  document.getElementById("inviteTitle").textContent=p.custom?p.title:"Ход за тобой";
   document.getElementById("inviteText").textContent=p.custom?(p.route+" · "+(p.p?.city||"")):"Тебе передали ход";
   document.getElementById("invite").classList.add("show");
   document.getElementById("invite").scrollIntoView();
