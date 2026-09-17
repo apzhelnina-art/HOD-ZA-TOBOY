@@ -166,6 +166,10 @@ input:focus{border-color:var(--lime)}
 <h2>Не знаешь куда? Ходи.</h2>
 <p>Ходи. Встречайся. Пробуй. Создавай.</p>
 </section>
+
+<footer style="text-align:center;padding:24px 16px 40px;color:var(--muted, #777);font-size:12px">
+© 2026 «Твой ход». Все права защищены. Копирование дизайна, текстов и логики без разрешения автора запрещено.
+</footer>
 </main>
 
 <script>
@@ -215,39 +219,81 @@ function buildMoves(p){
 function metaHTML(p){
  return `<div class="meta"><span class="pill">${p.city}</span><span class="pill">${hourText(p.hours)}</span><span class="pill">${moneyText(p.budget)}</span><span class="pill">${p.people}</span></div>`;
 }
-function render(){
- const p=parseIntent(idea.value);
- const regular=buildMoves(p);
- parsed.textContent=`Поняла: ${p.mood} · ${p.people} · ${hourText(p.hours)} · ${moneyText(p.budget)} · ${p.city}`;
+
+// ⚠️ ЗАМЕНИ на адрес своего backend-сервиса на Render после деплоя,
+// например: "https://tvoy-hod-backend.onrender.com"
+const BACKEND_URL = "https://tvoy-hod-backend.onrender.com";
+
+function renderRegularCards(regular,p,footnote){
  cards.innerHTML="";
  regular.forEach((x,i)=>{
   const c=document.createElement("article"); c.className="card";
-  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${x.t}</h3>${metaHTML(p)}<p class="route">${x.route}</p><p>${x.desc}</p><p style="font-size:11px;color:#777">На следующем этапе сюда подключим проверенные реальные места.</p><button class="share" type="button">Передать ход →</button>`;
+  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${x.t}</h3>${metaHTML(p)}<p class="route">${x.route}</p><p>${x.desc}</p><p style="font-size:11px;color:#777">${footnote}</p><button class="share" type="button">Передать ход →</button>`;
   c.querySelector(".share").addEventListener("click",()=>shareCustom(x.t,x.route,p));
   cards.appendChild(c);
  });
+}
+function appendSecretCard(p){
  const s=document.createElement("article"); s.className="card secret";
  s.innerHTML=`<small>◐ СЕКРЕТНЫЙ ХОД</small><h3>Не подсматривай</h3>${metaHTML(p)}
  <p class="route">Сценарий скрыт. Условия комфорта — нет.</p>
  <p class="secret-note">✓ маршрут собран в одном районе<br>✓ без лишних переездов<br>✓ учитывает твой запрос</p>
  <button class="accept-secret" type="button">Принять секретный ход ◐</button>
- <div class="reveal"><small>ШАГ 1</small><p>Первая точка откроется здесь после подключения базы реальных мест Москвы.</p><button class="share" type="button">Передать секретный ход →</button></div>`;
+ <div class="reveal"><small>ШАГ 1</small><p>Первая точка откроется здесь после подключения базы реальных мест.</p><button class="share" type="button">Передать секретный ход →</button></div>`;
  s.querySelector(".accept-secret").addEventListener("click",e=>{
    e.currentTarget.textContent="Секретный ход принят ✓";
    s.querySelector(".reveal").classList.add("show");
  });
  s.querySelector(".share").addEventListener("click",()=>shareCustom("Секретный ход ◐","Сценарий скрыт — условия известны.",p));
  cards.appendChild(s);
+}
+
+function renderLocal(p){
+ const regular=buildMoves(p);
+ renderRegularCards(regular,p,"На следующем этапе сюда подключим проверенные реальные места.");
+ appendSecretCard(p);
+}
+
+async function renderFromBackend(p){
+ const resp=await fetch(BACKEND_URL+"/api/hod",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({query:idea.value,city:p.city})
+ });
+ if(!resp.ok) throw new Error("backend responded "+resp.status);
+ const data=await resp.json();
+ if(!data.hods || data.hods.length===0) throw new Error(data.error||"нет ходов от backend");
+
+ if(data.weather){
+   parsed.textContent=`Поняла: ${p.mood} · ${p.people} · ${hourText(p.hours)} · ${moneyText(p.budget)} · ${p.city} · ${data.weather.tempC}°, ${data.weather.description}`;
+ }
+ const regular=data.hods.map(h=>({
+   t:h.title,
+   route:(h.steps||[]).map(s=>s.place_name).join(" → ")||h.route_summary,
+   desc:h.route_summary+(h.notes?` ${h.notes}`:"")
+ }));
+ renderRegularCards(regular,p,"Места реальные — проверены через 2ГИС.");
+ appendSecretCard(p);
+}
+
+async function render(){
+ const p=parseIntent(idea.value);
+ parsed.textContent=`Поняла: ${p.mood} · ${p.people} · ${hourText(p.hours)} · ${moneyText(p.budget)} · ${p.city} · подбираю…`;
  results.classList.add("show"); results.scrollIntoView({behavior:"smooth"});
+ try{
+   await renderFromBackend(p);
+ }catch(err){
+   console.warn("Backend недоступен, показываю локальный вариант:",err);
+   parsed.textContent=`Поняла: ${p.mood} · ${p.people} · ${hourText(p.hours)} · ${moneyText(p.budget)} · ${p.city}`;
+   renderLocal(p);
+ }
 }
 form.addEventListener("submit",e=>{
   e.preventDefault();
-  try{
-    render();
-  }catch(err){
+  render().catch(err=>{
     console.error(err);
     alert("Не удалось собрать ходы. Обнови страницу и попробуй ещё раз.");
-  }
+  });
 });
 async function shareCustom(title,route,p){
  const obj={custom:true,title,route,p};
