@@ -176,9 +176,13 @@ const results=document.getElementById("results");
 const cards=document.getElementById("cards");
 const parsed=document.getElementById("parsed");
 const invite=document.getElementById("invite");
-const savedCity=localStorage.getItem("tvoyHodCity");
-if(savedCity && [...city.options].some(o=>o.value===savedCity)) city.value=savedCity;
-city.addEventListener("change",()=>localStorage.setItem("tvoyHodCity",city.value));
+try{
+  const savedCity=localStorage.getItem("tvoyHodCity");
+  if(savedCity && [...city.options].some(o=>o.value===savedCity)) city.value=savedCity;
+}catch(e){console.warn("localStorage недоступен (чтение):",e);}
+city.addEventListener("change",()=>{
+  try{localStorage.setItem("tvoyHodCity",city.value);}catch(e){console.warn("localStorage недоступен (запись):",e);}
+});
 
 function parseIntent(q){
  const s=q.toLowerCase();
