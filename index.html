@@ -170,6 +170,12 @@ input:focus{border-color:var(--lime)}
 
 <script>
 const city=document.getElementById("city");
+const form=document.getElementById("ideaForm");
+const idea=document.getElementById("idea");
+const results=document.getElementById("results");
+const cards=document.getElementById("cards");
+const parsed=document.getElementById("parsed");
+const invite=document.getElementById("invite");
 const savedCity=localStorage.getItem("tvoyHodCity");
 if(savedCity && [...city.options].some(o=>o.value===savedCity)) city.value=savedCity;
 city.addEventListener("change",()=>localStorage.setItem("tvoyHodCity",city.value));
@@ -206,9 +212,9 @@ function metaHTML(p){
  return `<div class="meta"><span class="pill">${p.city}</span><span class="pill">${hourText(p.hours)}</span><span class="pill">${moneyText(p.budget)}</span><span class="pill">${p.people}</span></div>`;
 }
 function render(){
- const p=parseIntent(document.getElementById("idea").value);
+ const p=parseIntent(idea.value);
  const regular=buildMoves(p);
- document.getElementById("parsed").textContent=`Поняла: ${p.mood} · ${p.people} · ${hourText(p.hours)} · ${moneyText(p.budget)} · ${p.city}`;
+ parsed.textContent=`Поняла: ${p.mood} · ${p.people} · ${hourText(p.hours)} · ${moneyText(p.budget)} · ${p.city}`;
  cards.innerHTML="";
  regular.forEach((x,i)=>{
   const c=document.createElement("article"); c.className="card";
@@ -230,7 +236,15 @@ function render(){
  cards.appendChild(s);
  results.classList.add("show"); results.scrollIntoView({behavior:"smooth"});
 }
-form.addEventListener("submit",e=>{e.preventDefault();render()});
+form.addEventListener("submit",e=>{
+  e.preventDefault();
+  try{
+    render();
+  }catch(err){
+    console.error(err);
+    alert("Не удалось собрать ходы. Обнови страницу и попробуй ещё раз.");
+  }
+});
 async function shareCustom(title,route,p){
  const obj={custom:true,title,route,p};
  const payload=btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
