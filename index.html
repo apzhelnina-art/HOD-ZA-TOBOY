@@ -233,25 +233,55 @@ function renderRegularCards(regular,p,footnote){
   cards.appendChild(c);
  });
 }
-function appendSecretCard(p){
+function appendSecretCard(p,secret,weather,intent){
  const s=document.createElement("article"); s.className="card secret";
+ const steps=(secret && Array.isArray(secret.steps) && secret.steps.length)?secret.steps:null;
  s.innerHTML=`<small>◐ СЕКРЕТНЫЙ ХОД</small><h3>Не подсматривай</h3>${metaHTML(p)}
  <p class="route">Сценарий скрыт. Условия комфорта — нет.</p>
  <p class="secret-note">✓ маршрут собран в одном районе<br>✓ без лишних переездов<br>✓ учитывает твой запрос</p>
  <button class="accept-secret" type="button">Принять секретный ход ◐</button>
- <div class="reveal"><small>ШАГ 1</small><p>Первая точка откроется здесь после подключения базы реальных мест.</p><button class="share" type="button">Передать секретный ход →</button></div>`;
+ <button class="share" type="button">Передать секретный ход →</button>
+ <div class="reveal"></div>`;
+ const revealEl=s.querySelector(".reveal");
+ let i=-1;
+
+ // "Передать" имеет смысл только ДО начала — как приглашение пройти этот же квест
+ // (сама секретная последовательность мест при этом никому не раскрывается,
+ // только дата/время/бюджет/для кого/рекомендации по одежде).
+ s.querySelector(".share").addEventListener("click",()=>shareSecretInvite(p,weather,intent,secret));
+
+ function showTravel(){
+  const st=steps[i];
+  revealEl.innerHTML=`<small>ШАГ ${i+1} ИЗ ${steps.length}</small><p>Поезжай сюда:<br><strong>${st.address||"адрес уточняется"}</strong></p><button class="arrived-btn" type="button">Мы на месте ✓</button>`;
+  revealEl.querySelector(".arrived-btn").addEventListener("click",showArrived);
+ }
+ function showArrived(){
+  const st=steps[i];
+  const isLast=i===steps.length-1;
+  revealEl.innerHTML=`<small>ШАГ ${i+1} ИЗ ${steps.length}</small><p><strong>${st.place_name}</strong></p><p style="color:var(--muted);font-size:13px">${st.why||""}</p>`
+   +(isLast
+     ?`<p style="color:var(--lime);font-size:13px;margin-top:8px">✓ Ход завершён</p>`
+     :`<button class="next-step-btn" type="button">Следующий шаг →</button>`);
+  if(!isLast){
+   revealEl.querySelector(".next-step-btn").addEventListener("click",()=>{ i++; showTravel(); });
+  }
+ }
+
  s.querySelector(".accept-secret").addEventListener("click",e=>{
    e.currentTarget.textContent="Секретный ход принят ✓";
-   s.querySelector(".reveal").classList.add("show");
+   e.currentTarget.disabled=true;
+   s.querySelector(".share").remove(); // квест уже начат — приглашать пройти его "с нуля" больше нет смысла
+   revealEl.classList.add("show");
+   if(!steps){ revealEl.innerHTML=`<p>Первая точка откроется здесь после подключения базы реальных мест.</p>`; return; }
+   i=0; showTravel();
  });
- s.querySelector(".share").addEventListener("click",()=>shareCustom("Секретный ход ◐","Сценарий скрыт — условия известны.",p));
  cards.appendChild(s);
 }
 
 function renderLocal(p){
  const regular=buildMoves(p);
  renderRegularCards(regular,p,"На следующем этапе сюда подключим проверенные реальные места.");
- appendSecretCard(p);
+ appendSecretCard(p,null);
 }
 
 async function renderFromBackend(p){
@@ -283,7 +313,7 @@ async function renderFromBackend(p){
    };
  });
  renderRegularCards(regular,p,"");
- appendSecretCard(p);
+ appendSecretCard(p,data.secretHod||null,data.weather,data.intent);
 }
 
 async function render(){
@@ -305,6 +335,59 @@ form.addEventListener("submit",e=>{
     alert("Не удалось собрать ходы. Обнови страницу и попробуй ещё раз.");
   });
 });
+const RU_MONTHS=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+function inviteDateText(whenDay){
+ const d=new Date();
+ if(whenDay==="завтра") d.setDate(d.getDate()+1);
+ return `${d.getDate()} ${RU_MONTHS[d.getMonth()]}`;
+}
+function inviteTimeText(intent){
+ if(!intent) return "время гибкое";
+ if(intent.targetHour!=null) return `с ${intent.targetHour}:00`;
+ const map={"утро":"утром","день":"днём","вечер":"вечером","ночь":"ночью"};
+ if(intent.requestedDayPart && map[intent.requestedDayPart]) return map[intent.requestedDayPart];
+ return "время гибкое";
+}
+function weatherClothingBits(weather){
+ if(!weather || weather.tempC==null) return [];
+ const bits=[];
+ const desc=(weather.description||"").toLowerCase();
+ if(/дожд/.test(desc)) bits.push("возьми зонт");
+ if(/снег/.test(desc)) bits.push("непромокаемая обувь");
+ if(weather.tempC<=5) bits.push("одевайся теплее");
+ else if(weather.tempC>=25) bits.push("лёгкая одежда, будет жарко");
+ return bits;
+}
+function clothingHint(weather){
+ const bits=weatherClothingBits(weather);
+ bits.push("удобная обувь — маршрут пешеходный");
+ return bits.map((t,i)=>i===0?t[0].toUpperCase()+t.slice(1):t).join(", ")+".";
+}
+
+async function shareSecretInvite(p,weather,intent,secret){
+ let clothing;
+ if(secret&&secret.clothing_hint){
+   const parts=[secret.clothing_hint,...weatherClothingBits(weather)];
+   clothing=parts.map((t,i)=>i===0?t.charAt(0).toUpperCase()+t.slice(1):t).join("; ")+".";
+ }else{
+   clothing=clothingHint(weather);
+ }
+ const obj={
+   secretInvite:true,
+   city:p.city,
+   date:inviteDateText(intent?.whenDay||"сегодня"),
+   time:inviteTimeText(intent),
+   budget:moneyText(p.budget),
+   people:p.people,
+   clothing
+ };
+ const payload=btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+ const url=location.href.split("#")[0]+"#invite="+encodeURIComponent(payload);
+ const data={title:"Секретный ход ◐",text:"Тебя зовут на секретный ход — детали сюрприз ✦",url};
+ if(navigator.share){try{await navigator.share(data);return}catch(e){}}
+ prompt("Скопируй ссылку и отправь её:",url);
+}
+
 async function shareCustom(title,route,p){
  const obj={custom:true,title,route,p};
  const payload=btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
@@ -317,8 +400,14 @@ function readInvite(){
  const h=location.hash;if(!h.startsWith("#invite="))return;
  try{
   const p=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(h.slice(8))))));
-  document.getElementById("inviteTitle").textContent=p.custom?p.title:"Ход за тобой";
-  document.getElementById("inviteText").textContent=p.custom?(p.route+" · "+(p.p?.city||"")):"Тебе передали ход";
+  if(p.secretInvite){
+   document.getElementById("inviteTitle").textContent="Секретный ход ◐";
+   document.getElementById("inviteText").innerHTML=
+     `📍 ${p.city}<br>📅 ${p.date}, ${p.time}<br>💰 ${p.budget}<br>👥 ${p.people}<br>👕 ${p.clothing}<br><br>Куда именно — сюрприз ✦`;
+  }else{
+   document.getElementById("inviteTitle").textContent=p.custom?p.title:"Ход за тобой";
+   document.getElementById("inviteText").textContent=p.custom?(p.route+" · "+(p.p?.city||"")):"Тебе передали ход";
+  }
   document.getElementById("invite").classList.add("show");
   document.getElementById("invite").scrollIntoView();
  }catch(e){}
