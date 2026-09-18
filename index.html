@@ -295,7 +295,19 @@ async function renderFromBackend(p){
  if(!data.hods || data.hods.length===0) throw new Error(data.error||"нет ходов от backend");
 
  if(data.weather){
-   parsed.textContent=`Поняла: ${p.mood} · ${p.people} · ${hourText(p.hours)} · ${moneyText(p.budget)} · ${p.city} · ${data.weather.tempC}°, ${data.weather.description}`;
+   const bi=data.intent||p; // используем то, что реально распознал бэкенд, а не локальную догадку
+   const segments=[bi.mood,bi.people];
+   if(bi.whenDay==="завтра") segments.push("завтра");
+   if(bi.targetHour!=null) segments.push(`с ${bi.targetHour}:00`);
+   else if(bi.requestedDayPart){
+     const map={"утро":"утром","день":"днём","вечер":"вечером","ночь":"ночью"};
+     segments.push(map[bi.requestedDayPart]||bi.requestedDayPart);
+   }
+   segments.push(hourText(bi.hours));
+   segments.push(moneyText(bi.budget));
+   segments.push(bi.city);
+   segments.push(`${data.weather.tempC}°, ${data.weather.description}`);
+   parsed.textContent="Поняла: "+segments.filter(Boolean).join(" · ");
  }
  const regular=data.hods.map(h=>{
    if(h.is_idea){
