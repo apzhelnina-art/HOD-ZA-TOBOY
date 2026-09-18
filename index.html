@@ -228,7 +228,7 @@ function renderRegularCards(regular,p,footnote){
  cards.innerHTML="";
  regular.forEach((x,i)=>{
   const c=document.createElement("article"); c.className="card";
-  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${x.t}</h3>${metaHTML(p)}<p class="route">${x.route}</p><p>${x.desc}</p><p style="font-size:11px;color:#777">${x.footnote||footnote}</p><button class="share" type="button">Передать ход →</button>`;
+  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${x.t}</h3>${metaHTML(p)}<p class="route">${x.route}</p><p>${x.desc}</p>${(x.footnote||footnote)?`<p style="font-size:11px;color:#777">${x.footnote||footnote||""}</p>`:""}<button class="share" type="button">Передать ход →</button>`;
   c.querySelector(".share").addEventListener("click",()=>shareCustom(x.t,x.route,p));
   cards.appendChild(c);
  });
@@ -279,11 +279,10 @@ async function renderFromBackend(p){
    return {
      t:h.title,
      route:(h.steps||[]).map(s=>s.place_name).join(" → ")||h.route_summary,
-     desc:h.route_summary+(h.notes?` ${h.notes}`:""),
-     footnote:"Место реальное — проверено через OpenStreetMap."
+     desc:h.route_summary+(h.notes?` ${h.notes}`:"")
    };
  });
- renderRegularCards(regular,p,"Места реальные — проверены через OpenStreetMap.");
+ renderRegularCards(regular,p,"");
  appendSecretCard(p);
 }
 
