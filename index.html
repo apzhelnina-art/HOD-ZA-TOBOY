@@ -357,7 +357,8 @@ async function renderFromBackend(p){
    return {
      t:h.title,
      route:(h.steps||[]).map(s=>s.place_name).join(" → ")||h.route_summary,
-     desc:h.route_summary+(h.notes?` ${h.notes}`:"")
+     desc:h.route_summary+(h.notes?` ${h.notes}`:""),
+      steps:Array.isArray(h.steps)?h.steps:[]
    };
  });
  renderRegularCards(regular,p,"");
