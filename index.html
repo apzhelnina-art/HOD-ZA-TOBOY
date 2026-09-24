@@ -64,6 +64,14 @@ input:focus{border-color:var(--lime)}
 .card small{color:var(--lime);letter-spacing:.12em}.card h3{font:26px Georgia,serif;margin:9px 0}
 .card p{color:var(--muted);line-height:1.45;font-size:14px}
 .share{width:100%;border:1px solid var(--lime);background:transparent;color:var(--lime);padding:12px;border-radius:24px;font-weight:700}
+.view-hod{width:100%;border:0;background:var(--lime);color:#070907;padding:13px;border-radius:24px;font-weight:800;margin-top:8px;cursor:pointer}
+.hod-details{display:none;margin-top:14px;padding-top:14px;border-top:1px solid #2d3333}.hod-details.show{display:block}
+.place-detail{padding:14px 0;border-bottom:1px solid #252a2a}.place-detail:last-child{border-bottom:0}
+.place-detail h4{font:21px Georgia,serif;margin:5px 0 8px}.place-detail p{margin:6px 0;font-size:13px}
+.place-address{color:#f4f2eb!important}.place-why{color:var(--muted)!important}
+.map-link{display:inline-block;margin-top:9px;color:var(--lime);text-decoration:none;font-weight:750;font-size:13px}
+.detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}
+.collapse-hod{border:1px solid #444;background:transparent;color:#ddd;padding:12px;border-radius:24px;font-weight:700;cursor:pointer}
 
 .invite{display:none;border:1px solid var(--lime);border-radius:20px;padding:23px;margin-top:30px}
 .invite.show{display:block}.invite strong{font:31px Georgia,serif}
@@ -224,15 +232,43 @@ function metaHTML(p){
 // например: "https://tvoy-hod-backend.onrender.com"
 const BACKEND_URL = "https://tvoy-hod-backend.onrender.com"; // ✅ реальный адрес — Render не поменял URL при переименовании
 
+function esc(v){return String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+function safeHttpUrl(v){try{const u=new URL(String(v||""),location.href);return (u.protocol==="http:"||u.protocol==="https:")?u.href:"";}catch(e){return "";}}
+function mapsUrlForStep(st){
+ const direct=safeHttpUrl(st?.yandex_maps_url);
+ if(direct)return direct;
+ const q=[st?.place_name,st?.address].filter(Boolean).join(", ");
+ return q?`https://yandex.ru/maps/?text=${encodeURIComponent(q)}`:"";
+}
+function regularDetailsHTML(x){
+ const steps=Array.isArray(x.steps)?x.steps:[];
+ if(!steps.length)return `<p style="font-size:12px;color:var(--muted)">Подробности появятся, когда сценарий собран из реальных мест.</p>`;
+ return steps.map((st,idx)=>{
+  const map=mapsUrlForStep(st);
+  const desc=st.description?`<p>${esc(st.description)}</p>`:"";
+  const why=st.why?`<p class="place-why">${esc(st.why)}</p>`:"";
+  const addr=st.address?`<p class="place-address">📍 ${esc(st.address)}</p>`:"";
+  const budget=st.budget_note?`<p>💰 ${esc(st.budget_note)}</p>`:"";
+  const booking=st.booking==="required"?"<p>◌ Нужна предварительная запись</p>":st.booking==="recommended"?"<p>◌ Лучше забронировать заранее</p>":"";
+  return `<div class="place-detail"><small>ТОЧКА ${idx+1}</small><h4>${esc(st.place_name)}</h4>${desc}${why}${addr}${budget}${booking}${map?`<a class="map-link" href="${esc(map)}" target="_blank" rel="noopener noreferrer">Открыть в Яндекс Картах ↗</a>`:""}</div>`;
+ }).join("");
+}
 function renderRegularCards(regular,p,footnote){
  cards.innerHTML="";
  regular.forEach((x,i)=>{
-  const c=document.createElement("article"); c.className="card";
-  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${x.t}</h3>${metaHTML(p)}<p class="route">${x.route}</p><p>${x.desc}</p>${(x.footnote||footnote)?`<p style="font-size:11px;color:#777">${x.footnote||footnote||""}</p>`:""}<button class="share" type="button">Передать ход →</button>`;
-  c.querySelector(".share").addEventListener("click",()=>shareCustom(x.t,x.route,p));
+  const c=document.createElement("article");c.className="card";
+  const hasRealSteps=Array.isArray(x.steps)&&x.steps.length>0;
+  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${esc(x.t)}</h3>${metaHTML(p)}<p class="route">${esc(x.route)}</p><p>${esc(x.desc)}</p>${(x.footnote||footnote)?`<p style="font-size:11px;color:#777">${esc(x.footnote||footnote||"")}</p>`:""}${hasRealSteps?`<button class="view-hod" type="button">Посмотреть ход →</button><div class="hod-details">${regularDetailsHTML(x)}<div class="detail-actions"><button class="collapse-hod" type="button">Свернуть</button><button class="share" type="button">Передать ход →</button></div></div>`:`<button class="share" type="button">Передать ход →</button>`}`;
+  c.querySelector(".share")?.addEventListener("click",()=>shareCustom(x.t,x.route,p,x.steps||[]));
+  const view=c.querySelector(".view-hod"),details=c.querySelector(".hod-details");
+  if(view&&details){
+   view.addEventListener("click",()=>{details.classList.add("show");view.style.display="none";});
+   c.querySelector(".collapse-hod")?.addEventListener("click",()=>{details.classList.remove("show");view.style.display="";c.scrollIntoView({behavior:"smooth",block:"nearest"});});
+  }
   cards.appendChild(c);
  });
 }
+
 function appendSecretCard(p,secret,weather,intent){
  const s=document.createElement("article"); s.className="card secret";
  const steps=(secret && Array.isArray(secret.steps) && secret.steps.length)?secret.steps:null;
@@ -400,8 +436,8 @@ async function shareSecretInvite(p,weather,intent,secret){
  prompt("Скопируй ссылку и отправь её:",url);
 }
 
-async function shareCustom(title,route,p){
- const obj={custom:true,title,route,p};
+async function shareCustom(title,route,p,steps=[]){
+ const obj={custom:true,title,route,p,steps};
  const payload=btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
  const url=location.href.split("#")[0]+"#invite="+encodeURIComponent(payload);
  const data={title:"Ход за тобой ✦",text:"Тебе передали ход ✦",url};
