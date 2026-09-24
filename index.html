@@ -73,6 +73,7 @@ input:focus{border-color:var(--lime)}
 .detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}
 .collapse-hod{border:1px solid #444;background:transparent;color:#ddd;padding:12px;border-radius:24px;font-weight:700;cursor:pointer}
 
+.hod-panel{display:none;margin-top:18px;border:1px solid #343a3a;border-radius:22px;background:#0b0f0f;padding:24px}.hod-panel.show{display:block}.hod-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px}.hod-panel-head h3{font:clamp(27px,3vw,40px) Georgia,serif;margin:5px 0 0}.hod-panel-close{border:1px solid #444;background:transparent;color:#ddd;border-radius:999px;padding:9px 14px;cursor:pointer}.hod-route{color:#f3f1ea;margin:0 0 20px;font-size:15px}.hod-places{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.hod-place{border:1px solid #2b3131;border-radius:17px;padding:18px;background:#0d1212}.hod-place small{color:var(--lime);letter-spacing:.12em}.hod-place h4{font:24px Georgia,serif;margin:7px 0 10px}.hod-place p{margin:7px 0;color:var(--muted);font-size:13px;line-height:1.5}.hod-place .place-address{color:#f4f2eb!important}.hod-panel-actions{display:flex;gap:10px;margin-top:18px}.hod-panel-actions .share{max-width:280px}@media(max-width:720px){.hod-panel{padding:18px}.hod-places{grid-template-columns:1fr}.hod-panel-head{align-items:flex-start}.hod-panel-actions .share{max-width:none}}
 .invite{display:none;border:1px solid var(--lime);border-radius:20px;padding:23px;margin-top:30px}
 .invite.show{display:block}.invite strong{font:31px Georgia,serif}
 .closing{margin-top:58px}.closing h2{font:clamp(40px,6vw,65px)/1 Georgia,serif;margin:0}
@@ -161,6 +162,7 @@ input:focus{border-color:var(--lime)}
   <div id="parsed" class="parsed"></div>
 </div>
 <div class="cards" id="cards"></div>
+<div id="hodPanel" class="hod-panel" aria-live="polite"></div>
 </section>
 
 <section id="invite" class="invite">
@@ -187,6 +189,7 @@ const idea=document.getElementById("idea");
 const results=document.getElementById("results");
 const cards=document.getElementById("cards");
 const parsed=document.getElementById("parsed");
+const hodPanel=document.getElementById("hodPanel");
 const invite=document.getElementById("invite");
 try{
   const savedCity=localStorage.getItem("tvoyHodCity");
@@ -240,31 +243,40 @@ function mapsUrlForStep(st){
  const q=[st?.place_name,st?.address].filter(Boolean).join(", ");
  return q?`https://yandex.ru/maps/?text=${encodeURIComponent(q)}`:"";
 }
-function regularDetailsHTML(x){
+function publicDescription(text){
+ const raw=String(text||"").trim();
+ if(!raw)return "";
+ const bad=/(официальн|подтвержда|провер|перепровер|источник|карточк|dog[- ]?friendly|атрибут|в подборке|перед выдач|актуальн.*цен|хранить|статус|служебн|данн)/i;
+ const parts=raw.split(/(?<=[.!?])\s+/).filter(Boolean);
+ const clean=parts.filter(x=>!bad.test(x)).slice(0,2).join(" ").trim();
+ return clean || (bad.test(raw)?"":raw);
+}
+function placeHTML(st,idx){
+ const map=mapsUrlForStep(st);
+ const desc=publicDescription(st.description);
+ const why=publicDescription(st.why);
+ const addr=st.address?`<p class="place-address">📍 ${esc(st.address)}</p>`:"";
+ const booking=st.booking==="required"?"<p>◌ Нужна предварительная запись</p>":st.booking==="recommended"?"<p>◌ Лучше забронировать заранее</p>":"";
+ return `<article class="hod-place"><small>ТОЧКА ${idx+1}</small><h4>${esc(st.place_name)}</h4>${desc?`<p>${esc(desc)}</p>`:""}${why?`<p class="place-why">${esc(why)}</p>`:""}${addr}${booking}${map?`<a class="map-link" href="${esc(map)}" target="_blank" rel="noopener noreferrer">Открыть в Яндекс Картах ↗</a>`:""}</article>`;
+}
+function openHodPanel(x,i,p){
  const steps=Array.isArray(x.steps)?x.steps:[];
- if(!steps.length)return `<p style="font-size:12px;color:var(--muted)">Подробности появятся, когда сценарий собран из реальных мест.</p>`;
- return steps.map((st,idx)=>{
-  const map=mapsUrlForStep(st);
-  const desc=st.description?`<p>${esc(st.description)}</p>`:"";
-  const why=st.why?`<p class="place-why">${esc(st.why)}</p>`:"";
-  const addr=st.address?`<p class="place-address">📍 ${esc(st.address)}</p>`:"";
-  const budget=st.budget_note?`<p>💰 ${esc(st.budget_note)}</p>`:"";
-  const booking=st.booking==="required"?"<p>◌ Нужна предварительная запись</p>":st.booking==="recommended"?"<p>◌ Лучше забронировать заранее</p>":"";
-  return `<div class="place-detail"><small>ТОЧКА ${idx+1}</small><h4>${esc(st.place_name)}</h4>${desc}${why}${addr}${budget}${booking}${map?`<a class="map-link" href="${esc(map)}" target="_blank" rel="noopener noreferrer">Открыть в Яндекс Картах ↗</a>`:""}</div>`;
- }).join("");
+ if(!steps.length)return;
+ hodPanel.innerHTML=`<div class="hod-panel-head"><div><small style="color:var(--lime);letter-spacing:.14em">ХОД 0${i+1}</small><h3>${esc(x.t)}</h3></div><button class="hod-panel-close" type="button">Закрыть ×</button></div><p class="hod-route">${esc(x.route||"")}</p><div class="hod-places">${steps.map(placeHTML).join("")}</div><div class="hod-panel-actions"><button class="share" type="button">Передать ход →</button></div>`;
+ hodPanel.classList.add("show");
+ hodPanel.querySelector(".hod-panel-close").addEventListener("click",()=>{hodPanel.classList.remove("show");hodPanel.innerHTML="";});
+ hodPanel.querySelector(".share").addEventListener("click",()=>shareCustom(x.t,x.route,p,x.steps||[]));
+ hodPanel.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function renderRegularCards(regular,p,footnote){
  cards.innerHTML="";
+ hodPanel.classList.remove("show");hodPanel.innerHTML="";
  regular.forEach((x,i)=>{
   const c=document.createElement("article");c.className="card";
   const hasRealSteps=Array.isArray(x.steps)&&x.steps.length>0;
-  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${esc(x.t)}</h3>${metaHTML(p)}<p class="route">${esc(x.route)}</p><p>${esc(x.desc)}</p>${(x.footnote||footnote)?`<p style="font-size:11px;color:#777">${esc(x.footnote||footnote||"")}</p>`:""}${hasRealSteps?`<button class="view-hod" type="button">Посмотреть ход →</button><div class="hod-details">${regularDetailsHTML(x)}<div class="detail-actions"><button class="collapse-hod" type="button">Свернуть</button><button class="share" type="button">Передать ход →</button></div></div>`:`<button class="share" type="button">Передать ход →</button>`}`;
+  c.innerHTML=`<small>ХОД 0${i+1}</small><h3>${esc(x.t)}</h3>${metaHTML(p)}<p class="route">${esc(x.route)}</p><p>${esc(x.desc)}</p>${hasRealSteps?`<button class="view-hod" type="button">Посмотреть ход →</button>`:`<button class="share" type="button">Передать ход →</button>`}`;
   c.querySelector(".share")?.addEventListener("click",()=>shareCustom(x.t,x.route,p,x.steps||[]));
-  const view=c.querySelector(".view-hod"),details=c.querySelector(".hod-details");
-  if(view&&details){
-   view.addEventListener("click",()=>{details.classList.add("show");view.style.display="none";});
-   c.querySelector(".collapse-hod")?.addEventListener("click",()=>{details.classList.remove("show");view.style.display="";c.scrollIntoView({behavior:"smooth",block:"nearest"});});
-  }
+  c.querySelector(".view-hod")?.addEventListener("click",()=>openHodPanel(x,i,p));
   cards.appendChild(c);
  });
 }
@@ -357,8 +369,7 @@ async function renderFromBackend(p){
    return {
      t:h.title,
      route:(h.steps||[]).map(s=>s.place_name).join(" → ")||h.route_summary,
-     desc:h.route_summary+(h.notes?` ${h.notes}`:""),
-      steps:Array.isArray(h.steps)?h.steps:[]
+     desc:h.route_summary+(h.notes?` ${h.notes}`:"")
    };
  });
  renderRegularCards(regular,p,"");
